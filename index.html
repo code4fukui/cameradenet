@@ -1,0 +1,188 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
+<title>カメラでネット</title>
+</head><body>
+
+<script type="module" src="https://code4fukui.github.io/qr-code-reader/qr-code-reader.js"></script>
+<script type="module" src="https://js.sabae.cc/QRCode.js"></script>
+
+<h1>カメラでネット</h1>
+<main>
+<section class=secmessage>
+  <div class=label>名前</div><input id=inname><br>
+  <div class=label>宛先</div><input id=into><br>
+  <div class=label>本文</div><input id=inbody><br>
+  <div></div><button id=btnadd>登録</button><br>
+  <div id=divqr><qr-code id=qrcode></qr-code></div>
+  <div id=divqrr><qr-code-reader id=qrcodereader></qr-code-reader></div>
+  <span id=credit><a href=https://github.com/code4fukui/cameradenet>src on GitHub</a></span>
+</section>
+<section class=seclist>
+  <div id=divlist></div>
+</section>
+<br>
+</main>
+
+<script type="module">
+import { CSV } from "https://js.sabae.cc/CSV.js";
+import { equals } from "https://js.sabae.cc/equals.js";
+
+const debugmode = false;
+
+const list = [];
+/*
+for (let i = 0; i < 100; i++) {
+  list.push({ name: "abc" + i, body: "message" + i });
+}
+*/
+const e2j = {
+  name: "名前",
+  body: "本文",
+  to: "宛先",
+  data: "データ",
+};
+
+const showList = () => {
+  divlist.innerHTML = "";
+  
+  const data = CSV.fromJSON(list);
+  try {
+    qrcode.style.display = "block";
+    qrcode.value = CSV.encode(data);
+  } catch (e) { // overflow
+    qrcode.style.display = "none";
+    qrcode.value = "";
+  }
+  if (data.length == 0) return;
+  const cr = (tag, parent) => {
+    const c = document.createElement(tag);
+    if (parent) parent.appendChild(c);
+    return c;
+  };
+  const tbl = cr("table", divlist);
+  const tr = cr("tr", tbl);
+  data[0].forEach(i => cr("th", tr).textContent = e2j[i]);
+  cr("th", tr); // for 🗑️
+  data.shift();
+  data.forEach((i, idx) => {
+    const tr = cr("tr", tbl);
+    i.forEach(j => cr("td", tr).textContent = j);
+    const w = cr("td", tr);
+    w.textContent = "🗑️";
+    w.onclick = () => {
+      removeList(list[idx]);
+      showList(list);
+    };
+  });
+};
+
+const addList = (data) => {
+  const same = list.find(i => equals(data, i));
+  if (same) return;
+  list.push(data);
+};
+const removeList = (data) => {
+  const idx = list.findIndex(i => equals(data, i));
+  if (idx < 0) return;
+  list.splice(idx, 1);
+};
+
+showList();
+
+btnadd.onclick = () => {
+  addList({
+    name: inname.value,
+    to: into.value,
+    body:  inbody.value,
+  })
+  showList();
+
+  if (debugmode) {
+    const n = parseInt(inbody.value);
+    if (isNaN(n)) {
+      inbody.value = "2 " + inbody.value;
+    } else {
+      inbody.value = (n + 1) + " " + inbody.value.substring(n.toString().length + 1);
+    }
+  }
+};
+qrcodereader.oninput = (code) => {
+  const data = CSV.parse(code.data);
+  data.forEach(i => addList(i));
+  showList();
+  qrcodereader.stop();
+};
+</script>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  font-size: 100%;
+  font-family: sans-serif;
+}
+body {
+  height: 100vh;
+}
+h1 {
+  font-size: 110%;
+  padding: .2em .8em;
+}
+#credit a {
+  color: gray;
+}
+main {
+}
+.secmessage, .seclist {
+  display: inline-block;
+  vertical-align: top;
+  padding: .3em .9em;
+  margin: .3em;
+  border: outset;
+  border-radius: .5em;
+  background-color: #f8f8f8;
+}
+.secmessage {
+  width: 50%;
+}
+.seclist {
+  width: 45%;
+  height: 93vh;
+}
+
+.secmessage .label {
+  display: inline-block;
+  width: 3em;
+  margin: .1em;
+}
+.secmessage input {
+  width: 100%;
+}
+.secmessage * {
+  margin-bottom: .3em;
+}
+#divlist {
+  overflow: scroll;
+  height: 100%;
+}
+.seclist table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.seclist th, .seclist td {
+  text-align: left;
+  padding: .2em .3em;
+  border: 1px solid black;
+  background-color: white;
+}
+.seclist th:last-child, .seclist td:last-child {
+  width: 2em;
+  background-color: transparent;
+  border: none;
+}
+
+#divqr, #divqrr {
+  text-align: center;
+}
+</style>
+
+</body></html>
