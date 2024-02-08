@@ -11,10 +11,10 @@
   <div class=label>名前</div><input id=inname><br>
   <div class=label>宛先</div><input id=into><br>
   <div class=label>本文</div><input id=inbody><br>
-  <div></div><button id=btnadd>登録</button><br>
+  <div></div><button id=btnadd>登録</button><input id="inkey" placeholder="共通鍵"><br>
   <div id=divqr><qr-code id=qrcode></qr-code></div>
   <div id=divqrr><qr-code-reader id=qrcodereader></qr-code-reader></div>
-  <span id=credit><a href=https://github.com/code4fukui/cameradenet>src on GitHub</a></span>
+  <span id=credit><a href=https://github.com/code4fukui/cameradenet>src on GitHub</a> (with <a href=https://github.com/code4fukui/Ango/>Ango.js</a>)</span>
 </section>
 <section class=seclist>
   <div id=divlist></div>
@@ -25,6 +25,7 @@
 <script type="module">
 import { CSV } from "https://js.sabae.cc/CSV.js";
 import { equals } from "https://js.sabae.cc/equals.js";
+import { Ango } from "https://code4fukui.github.io/Ango/Ango.js";
 
 const debugmode = false;
 
@@ -39,6 +40,17 @@ const e2j = {
   body: "本文",
   to: "宛先",
   data: "データ",
+};
+
+const enc = (s) => {
+  const n = parseInt(inkey.value);
+  const key = isNaN(n) ? 0 : n;
+  return Ango.encode(s, key);
+};
+const dec = (s) => {
+  const n = parseInt(inkey.value);
+  const key = isNaN(n) ? 0 : n;
+  return Ango.decode(s, key);
 };
 
 const showList = () => {
@@ -60,12 +72,21 @@ const showList = () => {
   };
   const tbl = cr("table", divlist);
   const tr = cr("tr", tbl);
-  data[0].forEach(i => cr("th", tr).textContent = e2j[i]);
+  const head = data[0];
+  head.forEach(i => cr("th", tr).textContent = e2j[i]);
   cr("th", tr); // for 🗑️
   data.shift();
   data.forEach((i, idx) => {
     const tr = cr("tr", tbl);
-    i.forEach(j => cr("td", tr).textContent = j);
+    i.forEach((j, idx2) => {
+      const td = cr("td", tr);
+      td.textContent = j;
+      if (head[idx2] == "body") {
+        td.onclick = () => {
+          alert(dec(j));
+        };
+      }
+    });
     const w = cr("td", tr);
     w.textContent = "🗑️";
     w.onclick = () => {
@@ -92,7 +113,7 @@ btnadd.onclick = () => {
   addList({
     name: inname.value,
     to: into.value,
-    body:  inbody.value,
+    body: enc(inbody.value),
   })
   showList();
 
@@ -156,6 +177,10 @@ main {
 }
 .secmessage input {
   width: 100%;
+}
+.secmessage #inkey {
+  width: 6em;
+  margin-left: 1em;
 }
 .secmessage * {
   margin-bottom: .3em;
